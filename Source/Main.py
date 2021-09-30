@@ -171,9 +171,14 @@ def computePressureForces():
     pass
 
 @ti.kernel
+def clearVelocities():
+    for i in particleVelocities:
+        particleVelocities[i] = (0, 0, 0)
+
+@ti.kernel
 def computeVelocities():
     for i in particleVelocities:
-        particleVelocities[i] = particleForces[i] / particleMass
+        particleVelocities[i] += timeStep * particleForces[i] / particleMass
 
 @ti.kernel
 def updateLocation():
@@ -203,7 +208,7 @@ def Step():
 
     clearForces()
     computeExternalForces()
-    computeViscosityForces()
+    # computeViscosityForces()
 
     computeVelocities()
 
@@ -219,6 +224,7 @@ def exportMesh(i: int):
 
 def main():
     Init()
+    clearVelocities()
 
     sumT,frameT,frameIndex = 0,0,0
     try:
@@ -231,7 +237,7 @@ def main():
                 frameT -= 1 / FPS
                 frameIndex += 1
                 print('Frame', frameIndex)
-                # exportMesh(frameIndex)
+                exportMesh(frameIndex)
     except Exception as error:
         print(error)
 
