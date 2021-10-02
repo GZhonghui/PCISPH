@@ -1,4 +1,4 @@
-# PCISPH
+# PCISPH via Taichi
 > Predictive-Corrective Incompressible SPH
 
 ## Algorithm
