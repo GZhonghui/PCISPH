@@ -65,7 +65,6 @@ def gridIndex(Location):
   xIndex = ti.cast((Location[0] - boxX[0]) // (searchR * 2), ti.i32)
   yIndex = ti.cast((Location[1] - boxY[0]) // (searchR * 2), ti.i32)
   zIndex = ti.cast((Location[2] - boxZ[0]) // (searchR * 2), ti.i32)
-
   return ti.Vector([xIndex, yIndex, zIndex], dt=ti.i32)
 
 @ti.func
@@ -127,24 +126,23 @@ def SpikyGradient(p):
   return Res
 
 @ti.func
-def computeBeta(t):
-  return 2 * Square(particleMass * t * Ro)
+def computeBeta():
+  return 2 * Square(particleMass * timeStep / Ro)
 
 @ti.func
-def computeDelta(t):
+def computeDelta():
   return 1
 
 @ti.kernel
 def InitTaichi():
-  for i in particleLocations:
+  for i in range(particleCnt):
     xIndex = (i %  particleX)
     yIndex = (i // particleX) % particleY
     zIndex = (i // (particleX * particleY))
     particleLocations[i][0] = -10 + kernelR * xIndex
     particleLocations[i][1] = -10 + kernelR * yIndex
     particleLocations[i][2] =  15 + kernelR * zIndex
-  for i in particleVelocities:
-    particleVelocities[i] = (0, 0, 0)
+    particleVelocities[i] = (0, 0, 0)    
 
 @ti.kernel
 def computeDensities(Pred):
@@ -167,13 +165,13 @@ def computeDensities(Pred):
 
 @ti.kernel
 def computeGravityForces():
-  for i in particleExForces:
+  for i in range(particleCnt):
     particleExForces[i]  = Gravity * particleMass
     particleSumForces[i] = particleExForces[i]
 
 @ti.kernel
 def computeViscosityForces():
-  for i in particleExForces:
+  for i in range(particleCnt):
     thisIndex = gridIndex(particleLocations[i,0])
     for k in range(27):
       newIndex = nextGrid(thisIndex, k)
@@ -205,14 +203,14 @@ def clearPressureAndForce():
 
 @ti.kernel
 def computePressure():
-  for i in particlePressures:
+  for i in range(particleCnt):
     Error = max(particlePredictD[i] - Ro, 0)
     particlePressures[i] += max(Error * computeDelta(timeStep), 0)
 
 @ti.kernel
 def computePressureForces():
-  for i in particlePressures:
-    thisIndex = gridParticlesIdx[i]
+  for i in range(particleCnt):
+    thisIndex = gridIndex(particleLocations[i])
     for k in range(27):
       newIndex = nextGrid(thisIndex, k)
       Idx = gridIndexInOne(newIndex)
