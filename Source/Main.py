@@ -8,16 +8,16 @@ EPS = 1e-10
 
 Output = True
 
-timeStep = 0.001
+timeStep = 0.00138889
 
 minPC = 16
 allowRoError = 0.1
 
 FPS = 30
 
-boxX = (-40.0, 40.0)
-boxY = (-40.0, 40.0)
-boxZ = ( 0.0,  30.0)
+boxX = (-20.0, 20.0)
+boxY = (-20.0, 20.0)
+boxZ = ( 0.0,  15.0)
 
 particleX = 60
 particleY = 60
@@ -25,18 +25,20 @@ particleZ = 40
 
 particleCnt = particleX * particleY * particleZ
 
-particleMass = 0.001
+particleMass = 0.00403914
 particleMass_2 = particleMass * particleMass
 
 viscosityCoefficient = 0
 
-kernelR = 0.15
+kernelR = 0.036
 kernelR_2 = kernelR * kernelR
 kernelR_3 = kernelR_2 * kernelR
 kernelR_4 = kernelR_2 * kernelR_2
 kernelR_5 = kernelR_2 * kernelR_3
 
-searchR = kernelR * 1.2
+Spacing = 0.02
+
+searchR = Spacing * 1.2
 
 gridX = (boxX[1] - boxX[0]) // (searchR * 2) + 1
 gridY = (boxY[1] - boxY[0]) // (searchR * 2) + 1
@@ -44,7 +46,7 @@ gridZ = (boxZ[1] - boxZ[0]) // (searchR * 2) + 1
 
 gridCnt = int(gridX * gridY * gridZ)
 
-maxParticlesPerGrid = 32
+maxParticlesPerGrid = 128
 
 Ro    = ti.field(dtype=ti.f32, shape=())
 maxRo = ti.field(dtype=ti.f32, shape=())
@@ -134,9 +136,9 @@ def InitTaichi():
     xIndex = (i %  particleX)
     yIndex = (i // particleX) % particleY
     zIndex = (i // (particleX * particleY))
-    particleLocations[i,0][0] = -10 + 0.7 * kernelR * xIndex
-    particleLocations[i,0][1] = -10 + 0.7 * kernelR * yIndex
-    particleLocations[i,0][2] =  1  + 0.7 * kernelR * zIndex
+    particleLocations[i,0][0] = -10 + Spacing * xIndex
+    particleLocations[i,0][1] = -10 + Spacing * yIndex
+    particleLocations[i,0][2] =  1  + Spacing * zIndex
     particleVelocities[i] = (0, 0, 0)
 
 @ti.kernel
@@ -318,5 +320,8 @@ def main():
   except Exception as error:
     print(error)
 
+def test():
+  Init()
+
 if __name__=='__main__':
-  main()
+  test()
