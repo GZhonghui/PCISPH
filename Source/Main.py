@@ -4,24 +4,24 @@ ti.init(arch=ti.cuda)
 
 tiPi = ti.acos(-1.0)
 
+EPS = 1e-10
+
 Output = True
 
 timeStep = 0.001
 
-maxPC = 10
+minPC = 16
 allowRoError = 0.1
 
 FPS = 30
-
-Ro = 1.4147106
 
 boxX = (-40.0, 40.0)
 boxY = (-40.0, 40.0)
 boxZ = ( 0.0,  30.0)
 
-particleX = 120
-particleY = 120
-particleZ = 80
+particleX = 60
+particleY = 60
+particleZ = 40
 
 particleCnt = particleX * particleY * particleZ
 
@@ -44,11 +44,12 @@ gridZ = (boxZ[1] - boxZ[0]) // (searchR * 2) + 1
 
 gridCnt = int(gridX * gridY * gridZ)
 
-maxParticlesPerGrid = 16
+maxParticlesPerGrid = 32
 
+Ro    = ti.field(dtype=ti.f32, shape=())
 maxRo = ti.field(dtype=ti.f32, shape=())
 
-Delta = ti.filed(dtype=ti.f32, shape=())
+Delta = ti.field(dtype=ti.f32, shape=())
 
 Gravity = ti.Vector([0.0, 0.0, -9.8], dt=ti.f32)
 
@@ -123,7 +124,7 @@ def SpikySecondDerivative(r):
 def SpikyGradient(p):
   Res = ti.Vector([0.0, 0.0, 0.0], dt=ti.f32)
   Distance = p.norm()
-  if Distance > 0.0:
+  if Distance > EPS:
     Res = -SpikyFirstDerivative(Distance) * p / Distance
   return Res
 
@@ -133,13 +134,13 @@ def InitTaichi():
     xIndex = (i %  particleX)
     yIndex = (i // particleX) % particleY
     zIndex = (i // (particleX * particleY))
-    particleLocations[i][0] = -10 + kernelR * xIndex
-    particleLocations[i][1] = -10 + kernelR * yIndex
-    particleLocations[i][2] =  15 + kernelR * zIndex
-    particleVelocities[i] = (0, 0, 0)    
+    particleLocations[i,0][0] = -10 + 0.7 * kernelR * xIndex
+    particleLocations[i,0][1] = -10 + 0.7 * kernelR * yIndex
+    particleLocations[i,0][2] =  1  + 0.7 * kernelR * zIndex
+    particleVelocities[i] = (0, 0, 0)
 
 @ti.kernel
-def computeDensities(Pred):
+def computeDensities(Pred: ti.i32):
   maxRo[None] = 0
   for i in range(particleCnt):
     Sum = 0.0
@@ -179,11 +180,11 @@ def computeViscosityForces():
           Force = particleVelocities[Target] - particleVelocities[i]
           Force = Force * viscosityCoefficient * particleMass_2
           Force = Force / SpikySecondDerivative(Distance) / particleDensities[Target,0]
-          particleExForces[i] += Force * 0
+          particleExForces[i] += Force
     particleSumForces[i] = particleExForces[i]
 
 @ti.kernel
-def computeCollisions(Pred):
+def computeCollisions(Pred: ti.i32):
   for i in range(particleCnt):
     particleLocations[i,Pred][0] = min(max(particleLocations[i,Pred][0], boxX[0]), boxX[1])
     particleLocations[i,Pred][1] = min(max(particleLocations[i,Pred][1], boxY[0]), boxY[1])
@@ -198,7 +199,7 @@ def clearPressureAndForce():
 @ti.kernel
 def computePressure():
   for i in range(particleCnt):
-    Error = max(particleDensities[i,1] - Ro, 0)
+    Error = max(particleDensities[i,1] - Ro[None], 0)
     particlePressures[i] += max(Error * Delta[None], 0)
 
 @ti.kernel
@@ -213,14 +214,15 @@ def computePressureForces():
           if j > gridParticles[Idx,0]:
             break
           Target = gridParticles[Idx,j]
-          Dir = particleLocations[Target] - particleLocations[i]
-          A = particlePressures[i] / (particleDensities[i] * particleDensities[i])
-          B = particlePressures[Target] / (particleDensities[Target] * particleDensities[Target])
-          particlePressureFs[i] -= particleMass_2 * (A + B) * SpikyGradient(Dir)
+          if particlePressures[i] > EPS or particlePressures[Target] > EPS:
+            Dir = particleLocations[Target,0] - particleLocations[i,0]
+            A = particlePressures[i] / (particleDensities[i,0] * particleDensities[i,0])
+            B = particlePressures[Target] / (particleDensities[Target,0] * particleDensities[Target,0])
+            particlePressureFs[i] -= particleMass_2 * (A + B) * SpikyGradient(Dir)
     particleSumForces[i] = particleExForces[i] + particlePressureFs[i]
 
 @ti.kernel
-def Forward(Pred):
+def Forward(Pred: ti.i32):
   for i in range(particleCnt):
     if Pred:
       predV = particleVelocities[i] + timeStep * particleSumForces[i] / particleMass
@@ -230,20 +232,22 @@ def Forward(Pred):
       particleLocations[i,0] += particleVelocities[i] * timeStep
 
 @ti.kernel
-def computeGrid(Pred):
+def computeGrid(Pred: ti.i32):
   for i in range(gridCnt):
     gridParticles[i,0] = 0
   for i in range(particleCnt):
     Idx = gridIndexInOne(gridIndex(particleLocations[i,Pred]))
     setPlace = ti.atomic_add(gridParticles[Idx,0], 1)
-    gridParticles[Idx,setPlace] = i
+    gridParticles[Idx,setPlace+1] = i
 
 @ti.kernel
 def computeDelta():
-  Beta = 2 * Square(particleMass * timeStep / Ro)
+  Beta = 2 * Square(particleMass * timeStep / Ro[None])
   xIdx,yIdx,zIdx = particleX // 2,particleY // 2,particleZ // 2
   partIdx = zIdx * particleX * particleY + yIdx * particleX + xIdx
+  print('Detla Particle =',particleLocations[partIdx,0])
   thisIndex = gridIndex(particleLocations[partIdx,0])
+  DemonA,DemonB = ti.Vector([0.0,0.0,0.0],dt=ti.f32),0.0
   for k in range(27):
     newIndex = nextGrid(thisIndex, k)
     Idx = gridIndexInOne(newIndex)
@@ -252,34 +256,41 @@ def computeDelta():
         if j > gridParticles[Idx,0]:
           break
         Target = gridParticles[Idx,j]
-
-  Delta[None] = 1.0
+        gradWij = SpikyGradient(particleLocations[Target,0] - particleLocations[partIdx,0])
+        DemonA += gradWij
+        DemonB += gradWij.dot(gradWij)
+  Demon = -DemonA.dot(DemonA) - DemonB
+  if abs(Demon) > 0:
+    Delta[None] = -1 / (Beta * Demon)
+  else:
+    Delta[None] = 0
   print('Delta =',Delta[None])
 
 def Init():
+  print('ParticleCnt = ',particleCnt)
   InitTaichi()
   computeGrid(0)
   computeDensities(0)
+  Ro[None] = maxRo[None]
+  print('Ro = ',Ro[None])
   computeDelta()
 
 def Step():
   computeGrid(0)
   computeDensities(0)
   computeGravityForces()
-  computeViscosityForces()
-
   clearPressureAndForce()
-  for i in range(maxPC):
+  nowPC = 0
+  while maxRo[None] > allowRoError + Ro[None] or nowPC < minPC:
     Forward(1)
     computeCollisions(1)
     computeGrid(1)
     computeDensities(1)
-    print('Max Densities =',maxRo[None])
-    if maxRo[None] < allowRoError + Ro:
-      break
+    print('PC (%03d): Max Densities ='%(nowPC),maxRo[None])
     computeGrid(0)
     computePressure()
     computePressureForces()
+    nowPC += 1
 
   Forward(0)
   computeCollisions(0)
@@ -288,7 +299,7 @@ def exportMesh(i: int):
   npL = particleLocations.to_numpy()
 
   mesh_writer = ti.PLYWriter(num_vertices=particleCnt, face_type="quad")
-  mesh_writer.add_vertex_pos(npL[:, 0], npL[:, 1], npL[:, 2])
+  mesh_writer.add_vertex_pos(npL[:,0,0], npL[:,0,1], npL[:,0,2])
   mesh_writer.export_frame(i, 'S.ply')
 
 def main():
