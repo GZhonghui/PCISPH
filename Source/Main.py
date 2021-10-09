@@ -15,9 +15,9 @@ allowRoError = 0.1
 
 FPS = 30
 
-boxX = (-20.0, 20.0)
-boxY = (-20.0, 20.0)
-boxZ = ( 0.0,  15.0)
+boxX = (-5.0, 5.0)
+boxY = (-5.0, 5.0)
+boxZ = ( 0.0, 3.0)
 
 particleX = 60
 particleY = 60
@@ -46,7 +46,7 @@ gridZ = (boxZ[1] - boxZ[0]) // (searchR * 2) + 1
 
 gridCnt = int(gridX * gridY * gridZ)
 
-maxParticlesPerGrid = 128
+maxParticlesPerGrid = 32
 
 Ro    = ti.field(dtype=ti.f32, shape=())
 maxRo = ti.field(dtype=ti.f32, shape=())
@@ -136,9 +136,9 @@ def InitTaichi():
     xIndex = (i %  particleX)
     yIndex = (i // particleX) % particleY
     zIndex = (i // (particleX * particleY))
-    particleLocations[i,0][0] = -10 + Spacing * xIndex
-    particleLocations[i,0][1] = -10 + Spacing * yIndex
-    particleLocations[i,0][2] =  1  + Spacing * zIndex
+    particleLocations[i,0][0] = -3 + Spacing * xIndex
+    particleLocations[i,0][1] = -3 + Spacing * yIndex
+    particleLocations[i,0][2] =  1 + Spacing * zIndex
     particleVelocities[i] = (0, 0, 0)
 
 @ti.kernel
@@ -274,6 +274,7 @@ def Init():
   computeGrid(0)
   computeDensities(0)
   Ro[None] = maxRo[None]
+  Ro[None] = 1000
   print('Ro = ',Ro[None])
   computeDelta()
 
