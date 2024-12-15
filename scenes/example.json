@@ -1,0 +1,15 @@
+{
+    "parameters": {
+        "domain_start": [0.0, 0.0, 0.0],
+        "domain_end": [5.0, 3.0, 2.0],
+        "gravitation": [0.0, -9.81, 0.0],
+        "time_step": 0.0004,
+        "frame_rate": 60
+    },
+    "fluid_blocks": [
+
+    ],
+    "rigid_bodies": [
+
+    ]
+}

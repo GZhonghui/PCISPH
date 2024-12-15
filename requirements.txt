@@ -1,0 +1,2 @@
+taichi>=1.7.2
+mitsuba>=3.6.0
