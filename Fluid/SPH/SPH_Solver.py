@@ -1,13 +1,16 @@
 import os, json
 import taichi as ti
+from tqdm import tqdm
 from Fluid._basic import *
 from Fluid._importer._sph import *
+from Fluid.SPH.Searcher import Searcher
 
 class SPH_Solver:
     def __init__(self):
         self.cmd_args = dict()
         self.scene_cfg = dict()
-        self.scene_data = dict()
+        self.particles = list()
+        self.searcher = Searcher()
 
     def __del__(self):
         ...
@@ -19,7 +22,7 @@ class SPH_Solver:
         
         full_path = os.path.join(output_dir, file_name)
         with open(full_path, "w", encoding="utf-8") as file:
-            json.dump({"particles": []}, file, ensure_ascii=False, indent=4)
+            json.dump({"particles": self.particles}, file, ensure_ascii=False, indent=4)
 
     @log_time
     def build_scene(self) -> bool:
@@ -31,8 +34,27 @@ class SPH_Solver:
         
         # read config complated
         # build data
-        
-        log("build scene complated")
+        parameters = self.scene_cfg["parameters"]
+        particle_mass, density = parameters["particle_mass"], parameters["density"]
+        particle_radius = calc_radius(particle_mass, density)
+        log(f"particle calc complated, particle radius is {particle_radius}")
+
+        fluid_blocks = self.scene_cfg["fluid_blocks"]
+        for fluid_block in fluid_blocks:
+            domain_start = fluid_block["domain_start"]
+            domain_end = fluid_block["domain_end"]
+            x_pos = domain_start[0] + particle_radius
+            while x_pos < domain_end[0] + eps:
+                y_pos = domain_start[1] + particle_radius
+                while y_pos < domain_end[1] + eps:
+                    z_pos = domain_start[2] + particle_radius
+                    while z_pos < domain_end[2] + eps:
+                        self.particles.append([x_pos, y_pos, z_pos])
+                        z_pos += particle_radius * 2
+                    y_pos += particle_radius * 2
+                x_pos += particle_radius * 2
+
+        log(f"build scene complated, particle count is {len(self.particles):,}")
         return True
 
     # simulation loop
@@ -51,10 +73,12 @@ class SPH_Solver:
         log(f"output one frame after every {steps_per_frame} steps")
 
         frame_idx = 0
-        for step_idx in range(total_steps):
+        enter_bar()
+        for step_idx in tqdm(range(total_steps)):
             if step_idx % steps_per_frame == 0:
                 self.save_frame(frame_idx)
                 frame_idx += 1
             # simulation loop
+        exit_bar()
 
         log("sph solver run complated")

@@ -1,4 +1,7 @@
 # right hand, Y up
+# length: m
+# mass: kg
+# time: s
 
 from Fluid.SPH.SPH_Solver import SPH_Solver
 from Fluid.WCSPH.WCSPH_Solver import WCSPH_Solver

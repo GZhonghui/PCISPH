@@ -149,10 +149,34 @@ class Renderer:
     def build_frame(self, input_json_file: str):
         self.build_common_frame()
 
+        parameters = self.scene_cfg["parameters"]
+        particle_mass, density = parameters["particle_mass"], parameters["density"]
+        particle_radius = calc_radius(particle_mass, density)
+
+        single_particle_group = mi.load_dict({
+            "type": "shapegroup",
+            "base": {
+                "type": "sphere",
+                "radius": particle_radius,
+                "bsdf": {
+                    "type": "diffuse"
+                }
+            }
+        })
         frame_data = None
         if self.cmd_args.format == "particles":
             with open(input_json_file, "r") as file:
                 frame_data = json.load(file) # particles part
+                particles = frame_data["particles"]
+                particle_idx = 0
+                for particle in particles:
+                    particle_idx += 1
+                    self.frame_data_mitsuba_dict[f"particles_instance_{particle_idx}"] = {
+                        "type": "instance",
+                        "shapegroup": single_particle_group,
+                        "to_world": mi.Transform4f().translate(particle)
+                    }
+
         elif self.cmd_args.format == "surface":
             log("render part for surface mesh is under construction...")
 
