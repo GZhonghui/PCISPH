@@ -1,15 +1,31 @@
 {
     "parameters": {
-        "domain_start": [0.0, 0.0, 0.0],
-        "domain_end": [5.0, 3.0, 2.0],
+        "domain_start": [-0.75, 0.0, -0.5],
+        "domain_end": [0.75, 0.75, 0.25],
         "gravitation": [0.0, -9.81, 0.0],
         "time_step": 0.0004,
         "frame_rate": 60
+    },
+    "render": {
+        "camera_location": [0.0, 1.6, 2.4],
+        "camera_target": [0.0, 0.0, -0.8],
+        "width": 1024,
+        "height": 588,
+        "env_texture": "textures/20060807_wells6_hd.hdr"
     },
     "fluid_blocks": [
 
     ],
     "rigid_bodies": [
-
+        {
+            "id": 1,
+            "obj_file": "objs/bunny_sparse.obj",
+            "offset": [0.25, 0, -0.125]
+        },
+        {
+            "id": 2,
+            "obj_file": "objs/bunny.obj",
+            "offset": [-0.25, 0, -0.125]
+        }
     ]
 }

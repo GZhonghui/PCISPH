@@ -1,6 +1,8 @@
 # PCISPH via Taichi
 > Predictive-Corrective Incompressible SPH
 
+> Req: MacOS M1, Ubuntu (WSL 2) / Python 3.11
+
 ## Algorithm
 ![Algorithm](media/Algorithm.png)
 

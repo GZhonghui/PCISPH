@@ -1,4 +1,4 @@
-import os
+import os, json
 import taichi as ti
 from Fluid._basic import *
 from Fluid._importer._sph import *
@@ -13,15 +13,15 @@ class SPH_Solver:
         ...
 
     def save_frame(self, idx: int) -> None:
-        file_name = f"res_{idx:04}.txt"
+        file_name = f"res_{idx:04}.json"
         output_dir = os.path.abspath(self.cmd_args.output)
         os.makedirs(output_dir, exist_ok=True)
         
         full_path = os.path.join(output_dir, file_name)
         with open(full_path, "w", encoding="utf-8") as file:
-            file.write("NULL")
+            json.dump({"particles": []}, file, ensure_ascii=False, indent=4)
 
-    # Y axis is up
+    @log_time
     def build_scene(self) -> bool:
         self.scene_cfg = load_scene(self.cmd_args.scene)
 
@@ -36,16 +36,18 @@ class SPH_Solver:
         return True
 
     # simulation loop
+    @log_time
     def run(self) -> None:
         log("running sph solver...")
 
         scene_parameters = self.scene_cfg["parameters"]
         total_steps = int(self.cmd_args.length // scene_parameters["time_step"])
-        toal_frames = int(self.cmd_args.length * scene_parameters["frame_rate"])
         steps_per_frame = int(1 // (scene_parameters["frame_rate"] * scene_parameters["time_step"]))
+        toal_frames = int(total_steps // steps_per_frame)
+        
         log(f"simulation length is {self.cmd_args.length} seconds")
         log(f"total simulation steps is {total_steps}")
-        log(f"total output frames is {toal_frames}")
+        log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
 
         frame_idx = 0
@@ -54,3 +56,5 @@ class SPH_Solver:
                 self.save_frame(frame_idx)
                 frame_idx += 1
             # simulation loop
+
+        log("sph solver run complated")

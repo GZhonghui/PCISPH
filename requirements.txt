@@ -1,2 +1,6 @@
 taichi>=1.7.2
 mitsuba>=3.6.0
+numpy>=2.2.0
+opencv-python>=4.10.0.84
+tqdm>=4.67.1
+black>=24.10.0

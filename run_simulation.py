@@ -11,7 +11,7 @@ def main():
 
     args = parser.parse_args()
 
-    Fluid.entry(args=args)
+    Fluid.simulation_entry(args=args)
 
 if __name__ == "__main__":
     main()
