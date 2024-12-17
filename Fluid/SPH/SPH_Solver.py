@@ -1,16 +1,17 @@
-import os, json
+import os, json, math
 import taichi as ti
 from tqdm import tqdm
 from Fluid._basic import *
 from Fluid._importer._sph import *
-from Fluid.SPH.Searcher import Searcher
+from Fluid.SPH.NeighborhoodSearcher import NeighborhoodSearcher
+from Fluid.SPH.ParticleSystem import ParticleSystem
 
 class SPH_Solver:
     def __init__(self):
-        self.cmd_args = dict()
-        self.scene_cfg = dict()
-        self.particles = list()
-        self.searcher = Searcher()
+        self.cmd_args = None
+        self.scene_cfg = None
+        self.particle_system = ParticleSystem()
+        self.neighborhood_searcher = NeighborhoodSearcher()
 
     def __del__(self):
         ...
@@ -20,9 +21,12 @@ class SPH_Solver:
         output_dir = os.path.abspath(self.cmd_args.output)
         os.makedirs(output_dir, exist_ok=True)
         
+        particles = list()
+        self.particle_system.export_particles_location(particles)
+
         full_path = os.path.join(output_dir, file_name)
         with open(full_path, "w", encoding="utf-8") as file:
-            json.dump({"particles": self.particles}, file, ensure_ascii=False, indent=4)
+            json.dump({"particles": particles}, file, ensure_ascii=False, indent=4)
 
     @log_time
     def build_scene(self) -> bool:
@@ -39,6 +43,7 @@ class SPH_Solver:
         particle_radius = calc_radius(particle_mass, density)
         log(f"particle calc complated, particle radius is {particle_radius}")
 
+        particles = list()
         fluid_blocks = self.scene_cfg["fluid_blocks"]
         for fluid_block in fluid_blocks:
             domain_start = fluid_block["domain_start"]
@@ -49,12 +54,17 @@ class SPH_Solver:
                 while y_pos < domain_end[1] + eps:
                     z_pos = domain_start[2] + particle_radius
                     while z_pos < domain_end[2] + eps:
-                        self.particles.append([x_pos, y_pos, z_pos])
+                        particles.append([x_pos, y_pos, z_pos])
                         z_pos += particle_radius * 2
                     y_pos += particle_radius * 2
                 x_pos += particle_radius * 2
+        particles_cnt = len(particles)
 
-        log(f"build scene complated, particle count is {len(self.particles):,}")
+        self.particle_system.malloc_memory(particles_cnt)
+        for idx in range(particles_cnt):
+            self.particle_system.set_particle_location(idx, particles[idx])
+
+        log(f"build scene complated, particle count is {particles_cnt:,}")
         return True
 
     # simulation loop
@@ -64,8 +74,8 @@ class SPH_Solver:
 
         scene_parameters = self.scene_cfg["parameters"]
         total_steps = int(self.cmd_args.length // scene_parameters["time_step"])
-        steps_per_frame = int(1 // (scene_parameters["frame_rate"] * scene_parameters["time_step"]))
-        toal_frames = int(total_steps // steps_per_frame)
+        steps_per_frame = math.ceil(1 / (scene_parameters["frame_rate"] * scene_parameters["time_step"]))
+        toal_frames = math.ceil(total_steps / steps_per_frame)
         
         log(f"simulation length is {self.cmd_args.length} seconds")
         log(f"total simulation steps is {total_steps}")

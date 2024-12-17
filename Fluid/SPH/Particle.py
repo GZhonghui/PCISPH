@@ -1,6 +1,7 @@
-class Particle:
-    def __init__(self):
-        ...
+import taichi as ti
 
-    def __del__(self):
-        ...
+# @ti.dataclass
+Particle = ti.types.struct(
+    id = ti.uint32,
+    location = ti.math.vec3
+)

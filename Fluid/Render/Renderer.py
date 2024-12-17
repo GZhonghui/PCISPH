@@ -8,7 +8,7 @@ from Fluid._basic import *
 class Renderer:
     def __init__(self, args):
         self.cmd_args = args
-        self.scene_cfg = dict()
+        self.scene_cfg = None
         self.frame_data_mitsuba_dict = dict()
         self.rendered_images_path = list()
 

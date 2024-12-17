@@ -1,6 +1,6 @@
 import taichi as ti
 
-class Searcher:
+class NeighborhoodSearcher:
     def __init__(self):
         ...
 
