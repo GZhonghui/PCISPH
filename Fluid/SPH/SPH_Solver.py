@@ -2,7 +2,6 @@ import os, json, math
 import taichi as ti
 from tqdm import tqdm
 from Fluid._basic import *
-from Fluid._importer._sph import *
 from Fluid.SPH.NeighborhoodSearcher import NeighborhoodSearcher
 from Fluid.SPH.ParticleSystem import ParticleSystem
 
@@ -17,6 +16,9 @@ class SPH_Solver:
         ...
 
     def save_frame(self, idx: int) -> None:
+        if not self.cmd_args.enable_output:
+            return
+        
         file_name = f"res_{idx:04}.json"
         output_dir = os.path.abspath(self.cmd_args.output)
         os.makedirs(output_dir, exist_ok=True)
@@ -39,9 +41,9 @@ class SPH_Solver:
         # read config complated
         # build data
         parameters = self.scene_cfg["parameters"]
-        particle_mass, density = parameters["particle_mass"], parameters["density"]
-        particle_radius = calc_radius(particle_mass, density)
-        log(f"particle calc complated, particle radius is {particle_radius}")
+        particle_radius, density = parameters["particle_radius"], parameters["density"]
+        particle_mass = calc_particle_mass(particle_radius, density)
+        log(f"particle calc complated, particle mass is {particle_mass}")
 
         particles = list()
         fluid_blocks = self.scene_cfg["fluid_blocks"]
@@ -60,7 +62,12 @@ class SPH_Solver:
                 x_pos += particle_radius * 2
         particles_cnt = len(particles)
 
+        log("start malloc data on computing device")
         self.particle_system.malloc_memory(particles_cnt)
+        log("initing particles location...")
+        # self.particle_system.set_particles_location(particles)
+        # self.particle_system.init_particles_location()
+
         for idx in range(particles_cnt):
             self.particle_system.set_particle_location(idx, particles[idx])
 
@@ -82,13 +89,20 @@ class SPH_Solver:
         log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
 
+        render_cfg = self.scene_cfg["render"]
+        width, height = render_cfg["width"], render_cfg["height"]
+        preview_window = ti.ui.Window(name="Preview", res=(width,height), fps_limit=60, pos=(128,128))
+        preview_window.show()
+
         frame_idx = 0
         enter_bar()
-        for step_idx in tqdm(range(total_steps)):
+        for step_idx in tqdm(range(total_steps), desc="simulation steps"):
             if step_idx % steps_per_frame == 0:
                 self.save_frame(frame_idx)
                 frame_idx += 1
             # simulation loop
         exit_bar()
+        if preview_window.running:
+            preview_window.destroy()
 
         log("sph solver run complated")

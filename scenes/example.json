@@ -3,7 +3,8 @@
         "domain_start": [-0.75, 0.0, -0.5],
         "domain_end": [0.75, 0.75, 0.25],
         "gravitation": [0.0, -9.81, 0.0],
-        "particle_mass": 3.1017e-05,
+        "particle_mass": "deprecated",
+        "particle_radius": 0.005,
         "density": 997.0,
         "time_step": 0.0004,
         "frame_rate": 3

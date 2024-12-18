@@ -150,8 +150,7 @@ class Renderer:
         self.build_common_frame()
 
         parameters = self.scene_cfg["parameters"]
-        particle_mass, density = parameters["particle_mass"], parameters["density"]
-        particle_radius = calc_radius(particle_mass, density)
+        particle_radius = parameters["particle_radius"]
 
         single_particle_group = mi.load_dict({
             "type": "shapegroup",
