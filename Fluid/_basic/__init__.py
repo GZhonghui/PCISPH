@@ -6,7 +6,8 @@ __all__ = [
     "load_scene",
     "eps",
     "world_up",
-    "calc_radius"
+    "calc_particle_radius",
+    "calc_particle_mass"
 ]
 
 from Fluid._basic.message import enter_bar
@@ -16,4 +17,5 @@ from Fluid._basic.message import log_time
 from Fluid._basic.config import load_scene
 from Fluid._basic.math import eps
 from Fluid._basic.math import world_up
-from Fluid._basic.math import calc_radius
+from Fluid._basic.math import calc_particle_radius
+from Fluid._basic.math import calc_particle_mass
