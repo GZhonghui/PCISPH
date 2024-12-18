@@ -7,11 +7,12 @@
         "particle_radius": 0.005,
         "density": 997.0,
         "time_step": 0.0004,
-        "frame_rate": 3
+        "frame_rate": 30
     },
     "render": {
         "camera_location": [0.0, 1.6, 2.4],
         "camera_target": [0.0, 0.0, -0.8],
+        "camera_fov": 45,
         "width": 1024,
         "height": 512,
         "env_texture": "textures/env.hdr"

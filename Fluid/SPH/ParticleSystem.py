@@ -6,8 +6,9 @@ from Fluid.SPH.Particle import Particle
 @ti.data_oriented
 class ParticleSystem:
     def __init__(self):
-        self.particles = None
         self.particles_cnt = 0
+        self.particles = None
+        self.particles_location_field = None
 
     def __del__(self):
         ...
@@ -22,6 +23,9 @@ class ParticleSystem:
         # self.particles = Particle.field(shape=(particles_cnt,))
         self.particles = Particle.field()
         ti.root.dense(ti.i, particles_cnt).place(self.particles)
+        self.particles_location_field = ti.Vector.field(
+            3, dtype=ti.f32, shape = particles_cnt
+        )
         self.init_memory()
 
     def set_particle_location(self, id: int, location: list):
@@ -38,10 +42,15 @@ class ParticleSystem:
         for idx in range(self.particles_cnt):
             self.particles[idx].location = ti.math.vec3(0) # self.particles_location[idx]
 
-    def export_particles_location(self, location_list: list):
+    def export_particles_location_to_list(self, location_list: list):
         location_list.clear()
         for idx in range(self.particles_cnt):
             location = self.particles[idx].location
             location_list.append([
                 location.x, location.y, location.z
             ])
+    
+    @ti.kernel
+    def export_particles_location_to_field(self):
+        for idx in range(self.particles_cnt):
+            self.particles_location_field[idx] = self.particles[idx].location

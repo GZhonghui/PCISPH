@@ -27,6 +27,7 @@ class Renderer:
         env_texture = os.path.join(scene_file_path, render_cfg["env_texture"])
         camera_location = render_cfg["camera_location"]
         camera_target = render_cfg["camera_target"]
+        camera_fov = render_cfg["camera_fov"]
 
         obj_glass_bsdf = mi.load_dict({
             "type": "conductor",
@@ -54,7 +55,7 @@ class Renderer:
             },
             "sensor": {
                 "type": "perspective",
-                "fov": 45,
+                "fov": camera_fov,
                 "near_clip": 0.1,
                 "far_clip": 1000.0,
                 "to_world": mi.ScalarTransform4f().look_at(

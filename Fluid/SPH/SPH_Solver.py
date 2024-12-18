@@ -10,7 +10,6 @@ class SPH_Solver:
         self.cmd_args = None
         self.scene_cfg = None
         self.particle_system = ParticleSystem()
-        self.neighborhood_searcher = NeighborhoodSearcher()
 
     def __del__(self):
         ...
@@ -24,7 +23,7 @@ class SPH_Solver:
         os.makedirs(output_dir, exist_ok=True)
         
         particles = list()
-        self.particle_system.export_particles_location(particles)
+        self.particle_system.export_particles_location_to_list(particles)
 
         full_path = os.path.join(output_dir, file_name)
         with open(full_path, "w", encoding="utf-8") as file:
@@ -80,6 +79,7 @@ class SPH_Solver:
         log("running sph solver...")
 
         scene_parameters = self.scene_cfg["parameters"]
+        particle_radius = scene_parameters["particle_radius"]
         total_steps = int(self.cmd_args.length // scene_parameters["time_step"])
         steps_per_frame = math.ceil(1 / (scene_parameters["frame_rate"] * scene_parameters["time_step"]))
         toal_frames = math.ceil(total_steps / steps_per_frame)
@@ -89,10 +89,30 @@ class SPH_Solver:
         log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
 
+        enable_preview = self.cmd_args.enable_preview
+
+        frame_rate = scene_parameters["frame_rate"]
         render_cfg = self.scene_cfg["render"]
         width, height = render_cfg["width"], render_cfg["height"]
-        preview_window = ti.ui.Window(name="Preview", res=(width,height), fps_limit=60, pos=(128,128))
-        preview_window.show()
+        if enable_preview:
+            self.preview_window = ti.ui.Window(
+                name="Preview",
+                res=(width,height),
+                fps_limit=frame_rate,
+                pos=(128,128)
+            )
+
+            # render
+            canvas = self.preview_window.get_canvas()
+            scene = self.preview_window.get_scene()
+            camera = ti.ui.Camera()
+            camera.position(*render_cfg["camera_location"])
+            camera.lookat(*render_cfg["camera_target"])
+            camera.up(*world_up)
+            camera.fov(render_cfg["camera_fov"])
+            camera.projection_mode(ti.ui.ProjectionMode.Perspective)
+            scene.set_camera(camera)
+            scene.ambient_light((0.8, 0.8, 0.8))
 
         frame_idx = 0
         enter_bar()
@@ -100,9 +120,21 @@ class SPH_Solver:
             if step_idx % steps_per_frame == 0:
                 self.save_frame(frame_idx)
                 frame_idx += 1
+
+                # update preview window
+                if enable_preview and self.preview_window.running:
+                    self.particle_system.export_particles_location_to_field()
+                    scene.particles(
+                        self.particle_system.particles_location_field,
+                        color = (0.68, 0.26, 0.19),
+                        radius = particle_radius
+                    )
+                    canvas.scene(scene)
+                    self.preview_window.show()
+                    
             # simulation loop
         exit_bar()
-        if preview_window.running:
-            preview_window.destroy()
+        if enable_preview and self.preview_window.running:
+            self.preview_window.destroy()
 
         log("sph solver run complated")

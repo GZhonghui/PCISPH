@@ -15,7 +15,10 @@ import taichi as ti
 import mitsuba as mi
 
 # global init
-ti.init()
+ti.init(
+    default_ip=ti.i32,
+    default_fp=ti.f32
+)
 mi.set_variant("scalar_rgb")
 
 def simulation_entry(args):
