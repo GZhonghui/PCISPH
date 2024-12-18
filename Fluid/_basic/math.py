@@ -25,3 +25,53 @@ def in_range(point: list, start: list, end: list) -> list:
             is_in = False
         in_point[i] = math.min(math.max(point[i], start[i]), end[i])
     return [is_in, in_point]
+
+kernel_func_h = 0.1
+kernel_func_h2 = kernel_func_h ** 2
+kernel_func_h3 = kernel_func_h ** 3
+kernel_func_h4 = kernel_func_h ** 4
+kernel_func_h5 = kernel_func_h ** 5
+
+pi_h3_15 = 15 / (math.pi * kernel_func_h3)
+pi_h4_45 = 45 / (math.pi * kernel_func_h4)
+pi_h5_90 = 90 / (math.pi * kernel_func_h5)
+
+def set_kernel_func_h(h: float):
+    global kernel_func_h
+    global kernel_func_h2, kernel_func_h3
+    global kernel_func_h4, kernel_func_h5
+    global pi_h3_15, pi_h4_45, pi_h5_90
+    kernel_func_h = h
+    kernel_func_h2 = h ** 2
+    kernel_func_h3 = h ** 3
+    kernel_func_h4 = h ** 4
+    kernel_func_h5 = h ** 5
+    pi_h3_15 = 15 / (math.pi * kernel_func_h3)
+    pi_h4_45 = 45 / (math.pi * kernel_func_h4)
+    pi_h5_90 = 90 / (math.pi * kernel_func_h5)
+
+@ti.func
+def spiky(r: float) -> float:
+    if r < kernel_func_h:
+        return pi_h3_15 * ((1 - r / kernel_func_h) ** 3)
+    return 0
+
+@ti.func
+def spiky_first_derivative(r: float) -> float:
+    if r < kernel_func_h:
+        return -pi_h4_45 * ((1 - r / kernel_func_h) ** 2)
+    return 0
+
+def spiky_gradient(offset: ti.math.vec3): # type: ignore
+    ...
+
+@ti.func
+def spiky_second_derivative(r: float) -> float:
+    if r < kernel_func_h:
+        return pi_h5_90 * (1 - r / kernel_func_h)
+    return 0
+
+kernel_func = spiky
+kernel_func_first_derivative = spiky_first_derivative
+kernel_func_gradient = spiky_gradient
+kernel_func_second_derivative = spiky_second_derivative

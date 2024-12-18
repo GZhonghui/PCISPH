@@ -14,6 +14,7 @@ class SPH_Solver:
     def __del__(self):
         ...
 
+    # save particles location to disk
     def save_frame(self, idx: int) -> None:
         if not self.cmd_args.enable_output:
             return
@@ -44,34 +45,54 @@ class SPH_Solver:
         particle_mass = calc_particle_mass(particle_radius, density)
         log(f"particle calc complated, particle mass is {particle_mass}")
 
-        particles = list()
         fluid_blocks = self.scene_cfg["fluid_blocks"]
+        # particles = list()
+        # for fluid_block in fluid_blocks:
+        #     domain_start = fluid_block["domain_start"]
+        #     domain_end = fluid_block["domain_end"]
+        #     x_pos = domain_start[0] + particle_radius
+        #     while x_pos < domain_end[0] + eps:
+        #         y_pos = domain_start[1] + particle_radius
+        #         while y_pos < domain_end[1] + eps:
+        #             z_pos = domain_start[2] + particle_radius
+        #             while z_pos < domain_end[2] + eps:
+        #                 particles.append([x_pos, y_pos, z_pos])
+        #                 z_pos += particle_radius * 2
+        #             y_pos += particle_radius * 2
+        #         x_pos += particle_radius * 2
+        # particles_cnt = len(particles)
+
+        fluid_blocks_expand = list()
+        particles_cnt = 0
         for fluid_block in fluid_blocks:
             domain_start = fluid_block["domain_start"]
             domain_end = fluid_block["domain_end"]
-            x_pos = domain_start[0] + particle_radius
-            while x_pos < domain_end[0] + eps:
-                y_pos = domain_start[1] + particle_radius
-                while y_pos < domain_end[1] + eps:
-                    z_pos = domain_start[2] + particle_radius
-                    while z_pos < domain_end[2] + eps:
-                        particles.append([x_pos, y_pos, z_pos])
-                        z_pos += particle_radius * 2
-                    y_pos += particle_radius * 2
-                x_pos += particle_radius * 2
-        particles_cnt = len(particles)
+            cnt_per_axis = [0] * 3
+            cnt_in_this_block = 1
+            for i in range(3):
+                cnt_per_axis[i] = math.ceil((domain_end[i] - domain_start[i]) / (particle_radius * 2))
+                cnt_in_this_block *= cnt_per_axis[i]
+            particles_cnt += cnt_in_this_block
+            fluid_blocks_expand.append({
+                "start": domain_start,
+                "cnt": cnt_per_axis,
+                "sum": cnt_in_this_block
+            })
 
         log("start malloc data on computing device")
         self.particle_system.malloc_memory(particles_cnt)
-        log("initing particles location...")
-        # self.particle_system.set_particles_location(particles)
-        # self.particle_system.init_particles_location()
 
-        for idx in range(particles_cnt):
-            self.particle_system.set_particle_location(idx, particles[idx])
+        log("initing particles location...")
+        self.particle_system.init_particles_location(fluid_blocks_expand, particle_radius)
+
+        # for idx in range(particles_cnt):
+        #     self.particle_system.set_particle_location(idx, particles[idx])
 
         log(f"build scene complated, particle count is {particles_cnt:,}")
         return True
+    
+    def step(self):
+        ...
 
     # simulation loop
     @log_time
@@ -88,6 +109,10 @@ class SPH_Solver:
         log(f"total simulation steps is {total_steps}")
         log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
+
+        kernel_func_h = particle_radius * 4.0
+        set_kernel_func_h(kernel_func_h)
+        log(f"set kernel function h to {kernel_func_h}")
 
         enable_preview = self.cmd_args.enable_preview
 
@@ -117,22 +142,22 @@ class SPH_Solver:
         frame_idx = 0
         enter_bar()
         for step_idx in tqdm(range(total_steps), desc="simulation steps"):
+            # one frame
             if step_idx % steps_per_frame == 0:
                 self.save_frame(frame_idx)
                 frame_idx += 1
 
                 # update preview window
                 if enable_preview and self.preview_window.running:
-                    self.particle_system.export_particles_location_to_field()
                     scene.particles(
-                        self.particle_system.particles_location_field,
+                        self.particle_system.particles.location,
                         color = (0.68, 0.26, 0.19),
                         radius = particle_radius
                     )
                     canvas.scene(scene)
                     self.preview_window.show()
-                    
             # simulation loop
+            self.step()
         exit_bar()
         if enable_preview and self.preview_window.running:
             self.preview_window.destroy()
