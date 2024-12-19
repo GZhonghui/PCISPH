@@ -96,16 +96,41 @@ class ParticleSystem:
             grid_width
         )
 
+    def init_parameters(
+        self,
+        particle_radius: float,
+        particle_mass: float,
+        density: float,
+        gravitation: list
+    ):
+        self.particle_radius = particle_radius
+        self.particle_mass = particle_mass
+        self.density = density
+        self.gravitation = ti.math.vec3(gravitation)
+
     def rebuild_search_index(self):
         self.neighborhood_searcher.rebuild_search_index()
 
-    @ti.kernel
-    def compute_densities(self):
-        ...
+    @ti.func
+    def add_density(self, self_index: int, other_index: int):
+        distance = ti.math.distance(
+            self.particles[self_index].location,
+            self.particles[other_index].location
+        )
+        self.particles[self_index].density += kernel_func(distance)
 
     @ti.kernel
+    def compute_densities(self):
+        for i in range(self.particles_cnt):
+            self.particles[i].density = 0
+            self.neighborhood_searcher.for_all_neighborhoods(i, self.add_density)
+            self.particles[i].density *= self.particle_mass
+
+    # TODO: wind forces
+    @ti.kernel
     def accumulate_external_forces(self):
-        ...
+        for i in range(self.particles_cnt):
+            self.particles[i].forces = self.particle_mass * self.gravitation
 
     @ti.kernel
     def accumulate_viscosity_force(self):

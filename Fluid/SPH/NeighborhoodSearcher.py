@@ -52,6 +52,15 @@ class NeighborhoodSearcher:
             grid_3d.y * self.grid_cnt_per_axis.z +
             grid_3d.z
         )
+    
+    @ti.func
+    def grid_1d_to_grid_3d(self, grid_1d: int) -> tuple:
+        x = int(grid_1d / (self.grid_cnt_per_axis.y * self.grid_cnt_per_axis.z))
+        grid_1d -= x
+        y = int(grid_1d / self.grid_cnt_per_axis.z)
+        grid_1d -= y
+        z = grid_1d
+        return x,y,z
 
     @ti.kernel
     def clear_particles_cnt_in_every_grid(self):
@@ -73,14 +82,54 @@ class NeighborhoodSearcher:
                 self.location_to_grid_3d(self.parent.particles[i].location)
             )
             id = ti.atomic_sub(self.particles_cnt_in_every_grid[grid_id], 1) - 1
-            self.parent.particles[i] = id
+            self.parent.particles[i].id = id
+            self.parent.particles[i].grid_id = grid_id
             self.parent.id_to_index[id] = i
 
+    # rebuild every steps
     def rebuild_search_index(self):
         self.clear_particles_cnt_in_every_grid()
         self.count_particles_cnt_in_every_grid(self.parent.particles_cnt)
+        # cant run on arm64
         # self.prefix_sum_executor.run(self.particles_cnt_in_every_grid)
         # self.resort_particles(self.parent.particles_cnt)
 
-    def for_all_neighborhood(self):
-        ...
+    # call_func(self_index, other_index)
+    @ti.func
+    def for_all_neighborhoods(self, index: int, call_func: ti.template()): # type: ignore
+        grid_id = self.parent.particles[index].grid_id
+        x,y,z = self.grid_1d_to_grid_3d(grid_id)
+        # neighbors = [
+        #     [x+i, y+j, z+k] 
+        #     for i in range(-1,2)
+        #     for j in range(-1,2)
+        #     for k in range(-1,2)
+        # ]
+        # for neighbor_idx in range(27):
+        #     x,y,z = neighbors[neighbor_idx]
+        #     if (
+        #         0 <= x < self.grid_cnt_per_axis.x and
+        #         0 <= y < self.grid_cnt_per_axis.y and
+        #         0 <= z < self.grid_cnt_per_axis.z
+        #     ):
+        #         neighbor_id = self.grid_3d_to_grid_1d(ti.math.ivec3(x,y,z))
+        #         l, r  = 0, self.particles_cnt_in_every_grid[neighbor_id]
+        #         if neighbor_id > 0:
+        #             l = self.particles_cnt_in_every_grid[neighbor_id - 1]
+        #         for i in range(l,r):
+        #             call_func(index, self.parent.id_to_index[i])
+
+        for offset in ti.grouped(ti.ndrange(*((-1, 2),) * 3)):
+            neighbor = ti.math.ivec3(offset) + ti.math.ivec3(x,y,z)
+            x,y,z = neighbor.x, neighbor.y, neighbor.z
+            if (
+                0 <= x < self.grid_cnt_per_axis.x and
+                0 <= y < self.grid_cnt_per_axis.y and
+                0 <= z < self.grid_cnt_per_axis.z
+            ):
+                neighbor_id = self.grid_3d_to_grid_1d(ti.math.ivec3(x,y,z))
+                l, r  = 0, self.particles_cnt_in_every_grid[neighbor_id]
+                if neighbor_id > 0:
+                    l = self.particles_cnt_in_every_grid[neighbor_id - 1]
+                for i in range(l,r):
+                    call_func(index, self.parent.id_to_index[i])

@@ -50,6 +50,15 @@ class SPH_Solver:
         set_kernel_func_h(kernel_func_h)
         log(f"set kernel function h to {kernel_func_h}")
 
+        gravitation = parameters["gravitation"]
+        # init particle parameters
+        self.particle_system.init_parameters(
+            particle_radius,
+            particle_mass,
+            density,
+            gravitation
+        )
+
         # init grid
         domain_start = parameters["domain_start"]
         domain_end = parameters["domain_end"]
@@ -110,6 +119,8 @@ class SPH_Solver:
     
     def step(self):
         self.particle_system.rebuild_search_index()
+        self.particle_system.compute_densities()
+        self.particle_system.accumulate_external_forces()
 
     # simulation loop
     @log_time
