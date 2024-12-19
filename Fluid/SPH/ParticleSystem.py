@@ -2,12 +2,15 @@ import taichi as ti
 
 from Fluid._basic import *
 from Fluid.SPH.Particle import Particle
+from Fluid.SPH.NeighborhoodSearcher import NeighborhoodSearcher
 
 @ti.data_oriented
 class ParticleSystem:
     def __init__(self):
         self.particles_cnt = 0
         self.particles = None
+        self.id_to_index = None # TODO
+        self.neighborhood_searcher = NeighborhoodSearcher(self)
 
     def __del__(self):
         ...
@@ -16,12 +19,15 @@ class ParticleSystem:
     def init_memory(self):
         for idx in range(self.particles_cnt):
             self.particles[idx].id = ti.int32(idx)
+            self.id_to_index[idx] = ti.int32(idx)
 
     def malloc_memory(self, particles_cnt: int):
         self.particles_cnt = particles_cnt
         # self.particles = Particle.field(shape=(particles_cnt,))
         self.particles = Particle.field()
         ti.root.dense(ti.i, particles_cnt).place(self.particles)
+        self.id_to_index = ti.field(ti.int32)
+        ti.root.dense(ti.i, particles_cnt).place(self.id_to_index)
         # self.particles_location_field = ti.Vector.field(
         #     3, dtype=ti.f32, shape = particles_cnt
         # )
@@ -51,7 +57,9 @@ class ParticleSystem:
                 start_z + particle_radius * (k * 2 + 1)
             )
 
-    def init_particles_location(self, fluid_blocks_expand: list, particle_radius: float):
+    def init_particles_location(
+            self, fluid_blocks_expand: list, particle_radius: float
+        ):
         inited_cnt = 0
         for fluid_block in fluid_blocks_expand:
             self.init_particles_location_of_one_fluid_block(
@@ -75,6 +83,21 @@ class ParticleSystem:
     def export_particles_location_to_field(self):
         for idx in range(self.particles_cnt):
             self.particles_location_field[idx] = self.particles[idx].location
+
+    def init_domain(
+        self,
+        domain_start: list,
+        domain_end: list,
+        grid_width: float
+    ):
+        self.neighborhood_searcher.init_grids(
+            domain_start,
+            domain_end,
+            grid_width
+        )
+
+    def rebuild_search_index(self):
+        self.neighborhood_searcher.rebuild_search_index()
 
     @ti.kernel
     def compute_densities(self):

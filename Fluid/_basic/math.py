@@ -1,7 +1,7 @@
 import taichi as ti
 import copy, math
 
-eps = 1e-6
+eps = 1e-6 # do not use if you are not sure
 
 world_up = (0.0, 1.0, 0.0)
 
@@ -16,6 +16,7 @@ def calc_particle_mass(particle_radius: float, density: float) -> float:
     particle_cnt = particle_per_axis ** 3
     return density / particle_cnt
 
+# the function has been deprecated
 def in_range(point: list, start: list, end: list) -> list:
     dim = len(point)
     in_point = [0] * dim
@@ -52,24 +53,32 @@ def set_kernel_func_h(h: float):
 
 @ti.func
 def spiky(r: float) -> float:
+    result = 0.0
     if r < kernel_func_h:
-        return pi_h3_15 * ((1 - r / kernel_func_h) ** 3)
-    return 0
+        result = pi_h3_15 * ((1 - r / kernel_func_h) ** 3)
+    return result
 
 @ti.func
 def spiky_first_derivative(r: float) -> float:
+    result = 0.0
     if r < kernel_func_h:
-        return -pi_h4_45 * ((1 - r / kernel_func_h) ** 2)
-    return 0
+        result = -pi_h4_45 * ((1 - r / kernel_func_h) ** 2)
+    return result
 
-def spiky_gradient(offset: ti.math.vec3): # type: ignore
-    ...
+@ti.func
+def spiky_gradient(offset: ti.math.vec3) -> ti.math.vec3: # type: ignore
+    result = 0.0
+    distance = ti.math.length(offset)
+    if distance > 0:
+        result = -spiky_first_derivative(distance) * offset.normalized()
+    return result
 
 @ti.func
 def spiky_second_derivative(r: float) -> float:
+    result = 0.0
     if r < kernel_func_h:
-        return pi_h5_90 * (1 - r / kernel_func_h)
-    return 0
+        result = pi_h5_90 * (1 - r / kernel_func_h)
+    return result
 
 kernel_func = spiky
 kernel_func_first_derivative = spiky_first_derivative

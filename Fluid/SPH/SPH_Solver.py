@@ -2,7 +2,6 @@ import os, json, math
 import taichi as ti
 from tqdm import tqdm
 from Fluid._basic import *
-from Fluid.SPH.NeighborhoodSearcher import NeighborhoodSearcher
 from Fluid.SPH.ParticleSystem import ParticleSystem
 
 class SPH_Solver:
@@ -41,9 +40,23 @@ class SPH_Solver:
         # read config complated
         # build data
         parameters = self.scene_cfg["parameters"]
-        particle_radius, density = parameters["particle_radius"], parameters["density"]
+        particle_radius = parameters["particle_radius"]
+        density = parameters["density"]
         particle_mass = calc_particle_mass(particle_radius, density)
         log(f"particle calc complated, particle mass is {particle_mass}")
+
+        # set kernel function h
+        kernel_func_h = particle_radius * 4.0
+        set_kernel_func_h(kernel_func_h)
+        log(f"set kernel function h to {kernel_func_h}")
+
+        # init grid
+        domain_start = parameters["domain_start"]
+        domain_end = parameters["domain_end"]
+        self.particle_system.init_domain(
+            domain_start, domain_end,
+            grid_width=kernel_func_h
+        )
 
         fluid_blocks = self.scene_cfg["fluid_blocks"]
         # particles = list()
@@ -70,7 +83,9 @@ class SPH_Solver:
             cnt_per_axis = [0] * 3
             cnt_in_this_block = 1
             for i in range(3):
-                cnt_per_axis[i] = math.ceil((domain_end[i] - domain_start[i]) / (particle_radius * 2))
+                cnt_per_axis[i] = math.ceil(
+                    (domain_end[i] - domain_start[i]) / (particle_radius * 2)
+                )
                 cnt_in_this_block *= cnt_per_axis[i]
             particles_cnt += cnt_in_this_block
             fluid_blocks_expand.append({
@@ -83,7 +98,9 @@ class SPH_Solver:
         self.particle_system.malloc_memory(particles_cnt)
 
         log("initing particles location...")
-        self.particle_system.init_particles_location(fluid_blocks_expand, particle_radius)
+        self.particle_system.init_particles_location(
+            fluid_blocks_expand, particle_radius
+        )
 
         # for idx in range(particles_cnt):
         #     self.particle_system.set_particle_location(idx, particles[idx])
@@ -92,7 +109,7 @@ class SPH_Solver:
         return True
     
     def step(self):
-        ...
+        self.particle_system.rebuild_search_index()
 
     # simulation loop
     @log_time
@@ -102,17 +119,15 @@ class SPH_Solver:
         scene_parameters = self.scene_cfg["parameters"]
         particle_radius = scene_parameters["particle_radius"]
         total_steps = int(self.cmd_args.length // scene_parameters["time_step"])
-        steps_per_frame = math.ceil(1 / (scene_parameters["frame_rate"] * scene_parameters["time_step"]))
+        steps_per_frame = math.ceil(
+            1 / (scene_parameters["frame_rate"] * scene_parameters["time_step"])
+        )
         toal_frames = math.ceil(total_steps / steps_per_frame)
         
         log(f"simulation length is {self.cmd_args.length} seconds")
         log(f"total simulation steps is {total_steps}")
         log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
-
-        kernel_func_h = particle_radius * 4.0
-        set_kernel_func_h(kernel_func_h)
-        log(f"set kernel function h to {kernel_func_h}")
 
         enable_preview = self.cmd_args.enable_preview
 
