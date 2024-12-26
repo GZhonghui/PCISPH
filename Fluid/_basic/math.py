@@ -3,7 +3,11 @@ import copy, math
 
 eps = 1e-6 # do not use if you are not sure
 
+speed_of_sound = 1433.0 # under water
+
 world_up = (0.0, 1.0, 0.0)
+
+eos_exponent = 7 # http://cg.informatik.uni-freiburg.de/publications/2007_SCA_SPH.pdf
 
 # the function has been deprecated
 def calc_particle_radius(particle_mass: float, density: float) -> float:

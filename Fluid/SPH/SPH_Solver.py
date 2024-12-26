@@ -51,12 +51,16 @@ class SPH_Solver:
         log(f"set kernel function h to {kernel_func_h}")
 
         gravitation = parameters["gravitation"]
+        viscosity_coefficient = parameters["viscosity_coefficient"]
+        time_step = parameters["time_step"]
         # init particle parameters
         self.particle_system.init_parameters(
             particle_radius,
             particle_mass,
             density,
-            gravitation
+            gravitation,
+            viscosity_coefficient,
+            time_step
         )
 
         # init grid
@@ -121,6 +125,11 @@ class SPH_Solver:
         self.particle_system.rebuild_search_index()
         self.particle_system.compute_densities()
         self.particle_system.accumulate_external_forces()
+        self.particle_system.accumulate_viscosity_force()
+        self.particle_system.compute_pressure()
+        self.particle_system.accumulate_pressure_force()
+        self.particle_system.time_integration()
+        self.particle_system.resolve_collision()
 
     # simulation loop
     @log_time

@@ -101,12 +101,16 @@ class ParticleSystem:
         particle_radius: float,
         particle_mass: float,
         density: float,
-        gravitation: list
+        gravitation: list,
+        viscosity_coefficient: float,
+        time_step: float
     ):
         self.particle_radius = particle_radius
         self.particle_mass = particle_mass
         self.density = density
         self.gravitation = ti.math.vec3(gravitation)
+        self.viscosity_coefficient = viscosity_coefficient
+        self.time_step = time_step
 
     def rebuild_search_index(self):
         self.neighborhood_searcher.rebuild_search_index()
@@ -132,22 +136,89 @@ class ParticleSystem:
         for i in range(self.particles_cnt):
             self.particles[i].forces = self.particle_mass * self.gravitation
 
+    # TODO: check
+    @ti.func
+    def add_viscosity_force(self, self_index: int, other_index: int):
+        distance = ti.math.distance(
+            self.particles[self_index].location,
+            self.particles[other_index].location
+        )
+        self.particles[self_index].forces += (
+            (self.particles[other_index].location - self.particles[self_index].location)
+            * self.viscosity_coefficient * self.particle_mass * self.particle_mass
+            * kernel_func_second_derivative(distance)
+            / self.particles[other_index].density
+        )
+
+    # TODO: check
     @ti.kernel
     def accumulate_viscosity_force(self):
-        ...
+        for i in range(self.particles_cnt):
+            self.neighborhood_searcher.for_all_neighborhoods(i, self.add_viscosity_force)
 
+    # TODO: check
+    @ti.func
+    def compute_pressure_from_eos(self, density: float, eos_scale: float):
+        pressure = eos_scale * (
+            ti.math.pow(density / self.density, eos_exponent) - 1.0
+        )
+        
+        # TODO: is this right?
+        if pressure < 0:
+            pressure = 0
+        
+        return pressure
+
+    # TODO: check
     @ti.kernel
     def compute_pressure(self):
-        ...
+        eos_scale = self.density * speed_of_sound * speed_of_sound / eos_exponent
+        for i in range(self.particles_cnt):
+            self.particles[i].pressure = self.compute_pressure_from_eos(
+                self.particles[i].density,
+                eos_scale
+            )
 
+    # TODO: check
+    @ti.func
+    def add_pressure_force(self, self_index: int, other_index: int):
+        # distance = ti.math.distance(
+        #     self.particles[self_index].location,
+        #     self.particles[other_index].location
+        # )
+        if self_index != other_index:
+            # dir = (
+            #     self.particles[other_index].location - self.particles[self_index].location
+            # ) / distance
+            part_self = self.particles[self_index].pressure / (
+                self.particles[self_index].density * self.particles[self_index].density
+            )
+            part_other = self.particles[other_index].pressure / (
+                self.particles[other_index].density * self.particles[other_index].density
+            )
+            self.particles[self_index].pressure_forces -= (
+                self.particle_mass * self.particle_mass
+                * (part_self + part_other)
+                / kernel_func_gradient(self.particles[other_index].location - self.particles[self_index].location)
+            )
+
+    # TODO: check
     @ti.kernel
     def accumulate_pressure_force(self):
-        ...
+        for i in range(self.particles_cnt):
+            self.particles[i].pressure_forces = ti.math.vec3(0)
+            self.neighborhood_searcher.for_all_neighborhoods(i, self.add_pressure_force)
+            self.particles[i].forces += self.particles[i].pressure_forces
 
     @ti.kernel
     def time_integration(self):
-        ...
+        for i in range(self.particles_cnt):
+            self.particles[i].velocity += (
+                self.particles[i].forces * self.time_step / self.particle_mass
+            )
+            self.particles[i].location += self.particles[i].velocity * self.time_step
 
+    # TODO
     @ti.kernel
     def resolve_collision(self):
         ...
