@@ -95,6 +95,8 @@ class ParticleSystem:
             domain_end,
             grid_width
         )
+        self.domain_start = ti.math.vec3(domain_start)
+        self.domain_end = ti.math.vec3(domain_end)
 
     def init_parameters(
         self,
@@ -218,7 +220,20 @@ class ParticleSystem:
             )
             self.particles[i].location += self.particles[i].velocity * self.time_step
 
-    # TODO
+    # TODO: is this right?
     @ti.kernel
     def resolve_collision(self):
-        ...
+        for i in range(self.particles_cnt):
+            location = self.particles[i].location
+            if (
+                location.x < self.domain_start.x
+                or location.x > self.domain_end.x
+                or location.y < self.domain_start.y
+                or location.y > self.domain_end.y
+                or location.z < self.domain_start.z
+                or location.z > self.domain_end.z
+            ):
+                self.particles[i].velocity *= -0.5
+                self.particles[i].location = ti.math.clamp(
+                    location, self.domain_start, self.domain_end
+                )

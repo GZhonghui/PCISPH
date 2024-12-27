@@ -91,8 +91,8 @@ class NeighborhoodSearcher:
         self.clear_particles_cnt_in_every_grid()
         self.count_particles_cnt_in_every_grid(self.parent.particles_cnt)
         # cant run on arm64
-        # self.prefix_sum_executor.run(self.particles_cnt_in_every_grid)
-        # self.resort_particles(self.parent.particles_cnt)
+        self.prefix_sum_executor.run(self.particles_cnt_in_every_grid)
+        self.resort_particles(self.parent.particles_cnt)
 
     # call_func(self_index, other_index)
     @ti.func
