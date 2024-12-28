@@ -19,13 +19,11 @@ class SPH_Solver:
             return
         
         file_name = f"res_{idx:04}.json"
-        output_dir = os.path.abspath(self.cmd_args.output)
-        os.makedirs(output_dir, exist_ok=True)
         
         particles = list()
         self.particle_system.export_particles_location_to_list(particles)
 
-        full_path = os.path.join(output_dir, file_name)
+        full_path = os.path.join(self.output_dir, file_name)
         with open(full_path, "w", encoding="utf-8") as file:
             json.dump({"particles": particles}, file, ensure_ascii=False, indent=4)
 
@@ -149,6 +147,9 @@ class SPH_Solver:
         log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
 
+        self.output_dir = os.path.abspath(self.cmd_args.output)
+        os.makedirs(self.output_dir, exist_ok=True)
+
         enable_preview = self.cmd_args.enable_preview
 
         frame_rate = scene_parameters["frame_rate"]
@@ -161,6 +162,8 @@ class SPH_Solver:
                 fps_limit=frame_rate,
                 pos=(128,128)
             )
+
+            self.video_manager = ti.tools.VideoManager(self.output_dir)
 
             # render
             canvas = self.preview_window.get_canvas()
@@ -190,11 +193,14 @@ class SPH_Solver:
                         radius = particle_radius
                     )
                     canvas.scene(scene)
-                    self.preview_window.show()
+                    # self.preview_window.show()
+                    image = self.preview_window.get_image_buffer_as_numpy()
+                    self.video_manager.write_frame(image)
             # simulation loop
             self.step()
         exit_bar()
         if enable_preview and self.preview_window.running:
+            self.video_manager.make_video(gif=True, mp4=True)
             self.preview_window.destroy()
 
         log("sph solver run complated")
