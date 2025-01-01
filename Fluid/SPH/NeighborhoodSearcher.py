@@ -24,11 +24,13 @@ class NeighborhoodSearcher:
         self.domain_end = ti.math.vec3(domain_end)
         self.grid_width = grid_width
         self.grid_cnt_per_axis = ti.math.ivec3([
-            math.ceil(domain_end[i] - domain_start[i] / grid_width)
+            math.ceil((domain_end[i] - domain_start[i]) / grid_width)
             for i in range(3)
         ])
         for i in range(3):
             self.grid_cnt_sum *= self.grid_cnt_per_axis[i]
+        
+        log(f"grid width is {self.grid_width}")
         log(f"space splited, grid count is {self.grid_cnt_sum}")
 
         self.particles_cnt_in_every_grid = ti.field(ti.int32)

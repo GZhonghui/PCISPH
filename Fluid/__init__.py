@@ -16,6 +16,7 @@ import mitsuba as mi
 
 # global init
 ti.init(
+    arch=ti.cuda,
     default_ip=ti.i32,
     default_fp=ti.f32
 )
