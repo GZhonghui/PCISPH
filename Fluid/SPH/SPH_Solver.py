@@ -169,6 +169,8 @@ class SPH_Solver:
                 video_filename="out.mp4"
             )
 
+            self.video_manager = ti.tools.VideoManager(self.output_dir)
+
             # render
             canvas = self.preview_window.get_canvas()
             scene = self.preview_window.get_scene()
@@ -198,13 +200,14 @@ class SPH_Solver:
                     )
                     canvas.scene(scene)
                     # self.preview_window.show()
+                    # TODO
                     image = self.preview_window.get_image_buffer_as_numpy()
                     ti.tools.imwrite(
                         image,
                         os.path.join(self.output_dir, "test.png")
                     )
                     log(f"write image to {os.path.join(self.output_dir, 'test.png')}")
-                    # self.video_manager.write_frame(image)
+                    self.video_manager.write_frame(image)
             # simulation loop
             self.step()
         exit_bar()
