@@ -8,8 +8,8 @@ def main():
     parser.add_argument("--length", type=float, default=0.3, help="simulation length in seconds")
     parser.add_argument("--scene", type=str, default="scenes/example.json", help="scene config file path")
     parser.add_argument("--enable_output", action=argparse.BooleanOptionalAction, help="save simulation to disk")
-    parser.add_argument("--output", type=str, default="output/particles", help="output path for simulation result")
-    parser.add_argument("--enable_preview", action=argparse.BooleanOptionalAction, help="open a preview window")
+    parser.add_argument("--output_path", type=str, default="output/particles", help="output path for simulation result")
+    parser.add_argument("--enable_preview", action=argparse.BooleanOptionalAction, help="render preview via vulkan")
 
     args = parser.parse_args()
 

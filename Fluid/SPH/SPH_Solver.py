@@ -147,7 +147,7 @@ class SPH_Solver:
         log(f"total output frames is about {toal_frames}")
         log(f"output one frame after every {steps_per_frame} steps")
 
-        self.output_dir = os.path.abspath(self.cmd_args.output)
+        self.output_dir = os.path.abspath(self.cmd_args.output_path)
         os.makedirs(self.output_dir, exist_ok=True)
 
         enable_preview = self.cmd_args.enable_preview
@@ -166,10 +166,8 @@ class SPH_Solver:
 
             self.video_manager = ti.tools.VideoManager(
                 self.output_dir,
-                video_filename="out.mp4"
+                video_filename="rendered_by_vulkan.mp4"
             )
-
-            self.video_manager = ti.tools.VideoManager(self.output_dir)
 
             # render
             canvas = self.preview_window.get_canvas()
@@ -200,19 +198,18 @@ class SPH_Solver:
                     )
                     canvas.scene(scene)
                     # self.preview_window.show()
-                    # TODO
                     image = self.preview_window.get_image_buffer_as_numpy()
-                    ti.tools.imwrite(
-                        image,
-                        os.path.join(self.output_dir, "test.png")
-                    )
-                    log(f"write image to {os.path.join(self.output_dir, 'test.png')}")
+                    # ti.tools.imwrite(
+                    #     image,
+                    #     os.path.join(self.output_dir, "test.png")
+                    # )
+                    # log(f"write image to {os.path.join(self.output_dir, 'test.png')}")
                     self.video_manager.write_frame(image)
             # simulation loop
             self.step()
         exit_bar()
         if enable_preview and self.preview_window.running:
-            self.video_manager.make_video(gif=True, mp4=True)
+            self.video_manager.make_video(gif=False, mp4=True)
             self.preview_window.destroy()
 
         log("sph solver run complated")

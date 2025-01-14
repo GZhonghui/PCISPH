@@ -1,9 +1,10 @@
 import os, json
-import cv2
 from tqdm import tqdm
 import mitsuba as mi
 
 from Fluid._basic import *
+
+mi.set_variant("scalar_rgb")
 
 class Renderer:
     def __init__(self, args):
@@ -196,12 +197,12 @@ class Renderer:
         render_cfg = self.scene_cfg["render"]
         width, height = render_cfg["width"], render_cfg["height"]
 
-        video = cv2.VideoWriter(output_video, cv2.VideoWriter_fourcc(*"DIVX"), fps, (width, height))
+        # video = cv2.VideoWriter(output_video, cv2.VideoWriter_fourcc(*"DIVX"), fps, (width, height))
 
-        for image in self.rendered_images_path:
-            video.write(cv2.imread(image))
+        # for image in self.rendered_images_path:
+        #     video.write(cv2.imread(image))
 
-        video.release()
+        # video.release()
         log("video encode complated")
 
     @log_time

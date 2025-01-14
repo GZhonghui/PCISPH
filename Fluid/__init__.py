@@ -7,12 +7,9 @@ from Fluid.SPH.SPH_Solver import SPH_Solver
 from Fluid.WCSPH.WCSPH_Solver import WCSPH_Solver
 from Fluid.PCISPH.PCISPH_Solver import PCISPH_Solver
 
-from Fluid.Render.Renderer import Renderer
-
 from Fluid._basic import *
 
 import taichi as ti
-import mitsuba as mi
 
 # global init
 ti.init(
@@ -20,7 +17,6 @@ ti.init(
     default_ip=ti.i32,
     default_fp=ti.f32
 )
-mi.set_variant("scalar_rgb")
 
 def simulation_entry(args):
     log("start simulation...")
@@ -47,6 +43,7 @@ def simulation_entry(args):
     solver.run()
 
 def render_entry(args):
+    from Fluid.Render.Renderer import Renderer
     log("start rendering...")
     renderer = Renderer(args)
     renderer.render_all()
