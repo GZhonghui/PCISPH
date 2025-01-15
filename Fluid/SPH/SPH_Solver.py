@@ -1,4 +1,4 @@
-import os, json, math
+import os, json, math, copy
 import imageio
 import numpy as np
 import taichi as ti
@@ -126,9 +126,9 @@ class SPH_Solver:
         self.particle_system.compute_densities()
         self.particle_system.accumulate_external_forces()
         # self.particle_system.accumulate_viscosity_force()
-        self.particle_system.compute_pressure()
-        # self.particle_system.accumulate_pressure_force() # TODO
-        # self.particle_system.time_integration()
+        # self.particle_system.compute_pressure() # TODO
+        # self.particle_system.accumulate_pressure_force()
+        self.particle_system.time_integration()
         self.particle_system.resolve_collision()
 
     # simulation loop
@@ -225,6 +225,7 @@ class SPH_Solver:
 
         with imageio.get_writer(os.path.join(self.output_dir, "rendered.mp4"), fps=frame_rate) as writer:
             for image in frame_images:
+                image = np.flip(np.transpose(image, (1, 0, 2)), axis=0)
                 image_uint8 = (image * 255).astype(np.uint8)
                 writer.append_data(image_uint8)
 
