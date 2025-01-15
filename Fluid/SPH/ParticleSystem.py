@@ -132,6 +132,14 @@ class ParticleSystem:
             self.neighborhood_searcher.for_all_neighborhoods(i, self.add_density)
             self.particles[i].density *= self.particle_mass
 
+    # too slow...
+    @ti.kernel
+    def compute_avg_density(self) -> float:
+        total_density = 0.0
+        for i in range(self.particles_cnt):
+            ti.atomic_add(total_density, self.particles[i].density)
+        return total_density / self.particles_cnt
+
     # TODO: wind forces
     @ti.kernel
     def accumulate_external_forces(self):

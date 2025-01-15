@@ -187,7 +187,8 @@ class SPH_Solver:
 
         frame_idx = 0
         enter_bar()
-        for step_idx in tqdm(range(total_steps), desc="simulation steps"):
+        pbar = tqdm(total=total_steps, desc="simulation")
+        for step_idx in range(total_steps):
             # one frame
             if step_idx % steps_per_frame == 0:
                 self.save_frame(frame_idx)
@@ -210,8 +211,11 @@ class SPH_Solver:
                     # )
                     # log(f"write image to {os.path.join(self.output_dir, 'test.png')}")
                     # self.video_manager.write_frame(image)
-            # simulation loop
+            # simulation loop body
             self.step()
+            pbar.set_postfix_str(f"AD: {self.particle_system.compute_avg_density():.2f}")
+            pbar.update(1)
+        pbar.close()
         exit_bar()
         if enable_preview and self.preview_window.running:
             # self.video_manager.make_video(gif=False, mp4=True)
@@ -223,10 +227,10 @@ class SPH_Solver:
             #     os.removedirs(frames_dir)
             # self.video_manager.clean_frames() # BUG
 
-        with imageio.get_writer(os.path.join(self.output_dir, "rendered.mp4"), fps=frame_rate) as writer:
-            for image in frame_images:
-                image = np.flip(np.transpose(image, (1, 0, 2)), axis=0)
-                image_uint8 = (image * 255).astype(np.uint8)
-                writer.append_data(image_uint8)
+            with imageio.get_writer(os.path.join(self.output_dir, "rendered.mp4"), fps=frame_rate) as writer:
+                for image in frame_images:
+                    image = np.flip(np.transpose(image, (1, 0, 2)), axis=0)
+                    image_uint8 = (image * 255).astype(np.uint8)
+                    writer.append_data(image_uint8)
 
         log("sph solver run complated")
