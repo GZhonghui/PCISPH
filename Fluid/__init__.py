@@ -19,6 +19,7 @@ ti.init(
 )
 
 def simulation_entry(args):
+    # block_3rd_output()
     log("start simulation...")
     solver = None
     if args.method == "sph":

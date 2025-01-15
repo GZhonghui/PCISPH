@@ -1,6 +1,19 @@
-import time
+import time, sys, os
 
 _enable_output = True
+
+original_stdout = sys.stdout
+original_stderr = sys.stderr
+
+# redirect all output to /dev/null
+def block_3rd_output():
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+
+# resume all output to the original streams
+def resume_3rd_output():
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
 
 def enter_bar():
     global _enable_output
@@ -16,7 +29,7 @@ def log(*args, **kwargs):
     # get the current time and format it as [hh:mm:ss]
     timestamp = time.strftime("[%H:%M:%S]", time.localtime())
     # print the timestamp with all passed arguments, *args and **kwargs allow for any number of arguments
-    print(timestamp, *args, **kwargs)
+    print(timestamp, *args, **kwargs, file=original_stdout)
 
 def log_time(func):
     def wrapper(*args, **kwargs):

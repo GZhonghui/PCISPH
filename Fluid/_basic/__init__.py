@@ -1,4 +1,6 @@
 __all__ = [
+    "block_3rd_output",
+    "resume_3rd_output",
     "enter_bar",
     "exit_bar",
     "log",
@@ -17,6 +19,8 @@ __all__ = [
     "kernel_func_second_derivative"
 ]
 
+from Fluid._basic.message import block_3rd_output
+from Fluid._basic.message import resume_3rd_output
 from Fluid._basic.message import enter_bar
 from Fluid._basic.message import exit_bar
 from Fluid._basic.message import log
