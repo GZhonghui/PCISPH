@@ -3,12 +3,15 @@
 # mass: kg
 # time: s
 
+import os
+
 from Fluid.SPH.SPH_Solver import SPH_Solver
 from Fluid.WCSPH.WCSPH_Solver import WCSPH_Solver
 from Fluid.PCISPH.PCISPH_Solver import PCISPH_Solver
 
 from Fluid._basic import *
 
+os.environ["TI_LOG_LEVEL"] = "warn"
 import taichi as ti
 
 # global init

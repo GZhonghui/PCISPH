@@ -1,9 +1,21 @@
 import time, sys, os
+from contextlib import contextmanager
 
 _enable_output = True
 
 original_stdout = sys.stdout
 original_stderr = sys.stderr
+
+# BUG: cant work with "block_3rd_output" & "resume_3rd_output"
+@contextmanager
+def suppress_print():
+    try:
+        sys.stdout = open(os.devnull, 'w')
+        sys.stderr = open(os.devnull, 'w')
+        yield
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
 
 # redirect all output to /dev/null
 def block_3rd_output():
