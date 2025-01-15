@@ -123,7 +123,7 @@ class SPH_Solver:
         self.particle_system.rebuild_search_index()
         self.particle_system.compute_densities()
         self.particle_system.accumulate_external_forces()
-        self.particle_system.accumulate_viscosity_force()
+        # self.particle_system.accumulate_viscosity_force()
         self.particle_system.compute_pressure()
         self.particle_system.accumulate_pressure_force()
         self.particle_system.time_integration()
@@ -166,7 +166,7 @@ class SPH_Solver:
 
             self.video_manager = ti.tools.VideoManager(
                 self.output_dir,
-                video_filename="rendered_by_vulkan.mp4"
+                # video_filename="rendered_by_vulkan"
             )
 
             # render
@@ -211,5 +211,11 @@ class SPH_Solver:
         if enable_preview and self.preview_window.running:
             self.video_manager.make_video(gif=False, mp4=True)
             self.preview_window.destroy()
+
+            # clean the frames
+            # frames_dir = os.path.join(self.output_dir, "frames")
+            # if os.path.exists(frames_dir) and os.path.isdir(frames_dir):
+            #     os.removedirs(frames_dir)
+            # self.video_manager.clean_frames()
 
         log("sph solver run complated")

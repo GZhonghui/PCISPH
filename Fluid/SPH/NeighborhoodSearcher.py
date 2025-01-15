@@ -31,7 +31,9 @@ class NeighborhoodSearcher:
             self.grid_cnt_sum *= self.grid_cnt_per_axis[i]
         
         log(f"grid width is {self.grid_width}")
-        log(f"space splited, grid count is {self.grid_cnt_sum}")
+        log(f"space splited, grid count is {self.grid_cnt_sum}"
+            f"({self.grid_cnt_per_axis.x}, {self.grid_cnt_per_axis.y}, {self.grid_cnt_per_axis.z})"
+        )
 
         self.particles_cnt_in_every_grid = ti.field(ti.int32)
         ti.root.dense(ti.i, self.grid_cnt_sum).place(
@@ -58,9 +60,9 @@ class NeighborhoodSearcher:
     @ti.func
     def grid_1d_to_grid_3d(self, grid_1d: int) -> tuple:
         x = int(grid_1d / (self.grid_cnt_per_axis.y * self.grid_cnt_per_axis.z))
-        grid_1d -= x
+        grid_1d -= x * self.grid_cnt_per_axis.y * self.grid_cnt_per_axis.z
         y = int(grid_1d / self.grid_cnt_per_axis.z)
-        grid_1d -= y
+        grid_1d -= y * self.grid_cnt_per_axis.z
         z = grid_1d
         return x,y,z
 
@@ -88,6 +90,12 @@ class NeighborhoodSearcher:
             self.parent.particles[i].grid_id = grid_id
             self.parent.id_to_index[id] = i
 
+    @ti.kernel
+    def restore_particles_cnt_in_every_grid(self, particles_cnt: int):
+        for i in range(particles_cnt):
+            grid_id = self.parent.particles[i].grid_id
+            ti.atomic_add(self.particles_cnt_in_every_grid[grid_id], 1)
+
     # rebuild every steps
     def rebuild_search_index(self):
         self.clear_particles_cnt_in_every_grid()
@@ -95,12 +103,13 @@ class NeighborhoodSearcher:
         # cant run on arm64
         self.prefix_sum_executor.run(self.particles_cnt_in_every_grid)
         self.resort_particles(self.parent.particles_cnt)
+        self.restore_particles_cnt_in_every_grid(self.parent.particles_cnt)
 
     # call_func(self_index, other_index)
     @ti.func
     def for_all_neighborhoods(self, index: int, call_func: ti.template()): # type: ignore
         grid_id = self.parent.particles[index].grid_id
-        x,y,z = self.grid_1d_to_grid_3d(grid_id)
+        sx,sy,sz = self.grid_1d_to_grid_3d(grid_id)
         # neighbors = [
         #     [x+i, y+j, z+k] 
         #     for i in range(-1,2)
@@ -122,7 +131,7 @@ class NeighborhoodSearcher:
         #             call_func(index, self.parent.id_to_index[i])
 
         for offset in ti.grouped(ti.ndrange(*((-1, 2),) * 3)):
-            neighbor = ti.math.ivec3(offset) + ti.math.ivec3(x,y,z)
+            neighbor = ti.math.ivec3(offset) + ti.math.ivec3(sx,sy,sz)
             x,y,z = neighbor.x, neighbor.y, neighbor.z
             if (
                 0 <= x < self.grid_cnt_per_axis.x and
