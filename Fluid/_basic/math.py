@@ -70,11 +70,11 @@ def spiky_first_derivative(r: float) -> float:
     return result
 
 @ti.func
-def spiky_gradient(offset: ti.math.vec3) -> ti.math.vec3: # type: ignore
+def spiky_gradient(offset_point_to_center: ti.math.vec3) -> ti.math.vec3: # type: ignore
     result = ti.math.vec3(0.0)
-    distance = ti.math.length(offset)
-    if distance > 0:
-        result = -spiky_first_derivative(distance) * offset.normalized()
+    distance = ti.math.length(offset_point_to_center)
+    if distance > 0.0:
+        result = -spiky_first_derivative(distance) * offset_point_to_center.normalized()
     return result
 
 @ti.func

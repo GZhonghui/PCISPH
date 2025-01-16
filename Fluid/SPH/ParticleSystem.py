@@ -166,7 +166,6 @@ class ParticleSystem:
         for i in range(self.particles_cnt):
             self.neighborhood_searcher.for_all_neighborhoods(i, self.add_viscosity_force)
 
-    # TODO: check
     @ti.func
     def compute_pressure_from_eos(self, density: float, eos_scale: float):
         pressure = eos_scale * (
@@ -179,7 +178,6 @@ class ParticleSystem:
         
         return pressure
 
-    # TODO: check
     @ti.kernel
     def compute_pressure(self):
         eos_scale = self.density * speed_of_sound * speed_of_sound / eos_exponent
@@ -209,10 +207,11 @@ class ParticleSystem:
             self.particles[self_index].pressure_forces -= (
                 self.particle_mass * self.particle_mass
                 * (part_self + part_other)
-                / kernel_func_gradient(self.particles[other_index].location - self.particles[self_index].location)
+                / kernel_func_gradient(
+                    self.particles[other_index].location - self.particles[self_index].location
+                )
             )
 
-    # TODO: check
     @ti.kernel
     def accumulate_pressure_force(self):
         for i in range(self.particles_cnt):
