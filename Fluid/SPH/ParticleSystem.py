@@ -105,7 +105,8 @@ class ParticleSystem:
         density: float,
         gravitation: list,
         viscosity_coefficient: float,
-        time_step: float
+        time_step: float,
+        kernel_func_h: float
     ):
         self.particle_radius = particle_radius
         self.particle_mass = particle_mass
@@ -113,6 +114,7 @@ class ParticleSystem:
         self.gravitation = ti.math.vec3(gravitation)
         self.viscosity_coefficient = viscosity_coefficient
         self.time_step = time_step
+        self.kernel_func_h = kernel_func_h
 
     def rebuild_search_index(self):
         self.neighborhood_searcher.rebuild_search_index()
@@ -123,7 +125,8 @@ class ParticleSystem:
             self.particles[self_index].location,
             self.particles[other_index].location
         )
-        self.particles[self_index].density += kernel_func(distance)
+        if distance < self.kernel_func_h:
+            self.particles[self_index].density += kernel_func_b(distance) # poly6
 
     @ti.kernel
     def compute_densities(self):
@@ -156,7 +159,7 @@ class ParticleSystem:
         self.particles[self_index].forces += (
             (self.particles[other_index].location - self.particles[self_index].location)
             * self.viscosity_coefficient * self.particle_mass * self.particle_mass
-            * kernel_func_second_derivative(distance)
+            * kernel_func_a_second_derivative(distance) # TODO: check
             / self.particles[other_index].density
         )
 
@@ -194,10 +197,10 @@ class ParticleSystem:
     def add_pressure_force(self, self_index: int, other_index: int):
         if self_index != other_index:
             # 计算位置差向量
-            r = self.particles[self_index].location - self.particles[other_index].location
-            distance = ti.math.length(r)
+            r_to_center = self.particles[self_index].location - self.particles[other_index].location
+            distance = ti.math.length(r_to_center)
             
-            if distance > 0:  # 避免除零
+            if 0.0 < distance < self.kernel_func_h:  # 避免除零
                 # 计算压力项
                 part_self = self.particles[self_index].pressure / (
                     self.particles[self_index].density * self.particles[self_index].density
@@ -210,7 +213,7 @@ class ParticleSystem:
                 self.particles[self_index].pressure_forces -= (
                     self.particle_mass * self.particle_mass
                     * (part_self + part_other)
-                    * kernel_func_gradient(-r)  # 这里直接使用位置差向量计算梯度
+                    * kernel_func_a_gradient(r_to_center)  # 这里直接使用位置差向量计算梯度 spiky
                 )
 
     @ti.kernel

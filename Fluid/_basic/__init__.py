@@ -14,10 +14,15 @@ __all__ = [
     "calc_particle_radius",
     "calc_particle_mass",
     "set_kernel_func_h",
-    "kernel_func",
-    "kernel_func_first_derivative",
-    "kernel_func_gradient",
-    "kernel_func_second_derivative"
+    "get_kernel_func_h",
+    "kernel_func_a",
+    "kernel_func_a_first_derivative",
+    "kernel_func_a_gradient",
+    "kernel_func_a_second_derivative",
+    "kernel_func_b",
+    "kernel_func_b_first_derivative",
+    "kernel_func_b_gradient",
+    "kernel_func_b_second_derivative"
 ]
 
 from Fluid._basic.message import suppress_print
@@ -35,7 +40,12 @@ from Fluid._basic.math import eos_exponent
 from Fluid._basic.math import calc_particle_radius
 from Fluid._basic.math import calc_particle_mass
 from Fluid._basic.math import set_kernel_func_h
-from Fluid._basic.math import kernel_func
-from Fluid._basic.math import kernel_func_first_derivative
-from Fluid._basic.math import kernel_func_gradient
-from Fluid._basic.math import kernel_func_second_derivative
+from Fluid._basic.math import get_kernel_func_h
+from Fluid._basic.math import kernel_func_a
+from Fluid._basic.math import kernel_func_a_first_derivative
+from Fluid._basic.math import kernel_func_a_gradient
+from Fluid._basic.math import kernel_func_a_second_derivative
+from Fluid._basic.math import kernel_func_b
+from Fluid._basic.math import kernel_func_b_first_derivative
+from Fluid._basic.math import kernel_func_b_gradient
+from Fluid._basic.math import kernel_func_b_second_derivative
