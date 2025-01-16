@@ -178,6 +178,8 @@ class ParticleSystem:
         
         return pressure
 
+    # 泰特的状态方程
+    # 当前密度大于目标密度，则压强为正，反之压强为负（看公式）
     @ti.kernel
     def compute_pressure(self):
         eos_scale = self.density * speed_of_sound * speed_of_sound / eos_exponent
@@ -190,27 +192,26 @@ class ParticleSystem:
     # TODO: check
     @ti.func
     def add_pressure_force(self, self_index: int, other_index: int):
-        # distance = ti.math.distance(
-        #     self.particles[self_index].location,
-        #     self.particles[other_index].location
-        # )
         if self_index != other_index:
-            # dir = (
-            #     self.particles[other_index].location - self.particles[self_index].location
-            # ) / distance
-            part_self = self.particles[self_index].pressure / (
-                self.particles[self_index].density * self.particles[self_index].density
-            )
-            part_other = self.particles[other_index].pressure / (
-                self.particles[other_index].density * self.particles[other_index].density
-            )
-            self.particles[self_index].pressure_forces -= (
-                self.particle_mass * self.particle_mass
-                * (part_self + part_other)
-                / kernel_func_gradient(
-                    self.particles[other_index].location - self.particles[self_index].location
+            # 计算位置差向量
+            r = self.particles[self_index].location - self.particles[other_index].location
+            distance = ti.math.length(r)
+            
+            if distance > 0:  # 避免除零
+                # 计算压力项
+                part_self = self.particles[self_index].pressure / (
+                    self.particles[self_index].density * self.particles[self_index].density
                 )
-            )
+                part_other = self.particles[other_index].pressure / (
+                    self.particles[other_index].density * self.particles[other_index].density
+                )
+                
+                # 计算压力梯度力
+                self.particles[self_index].pressure_forces -= (
+                    self.particle_mass * self.particle_mass
+                    * (part_self + part_other)
+                    * kernel_func_gradient(-r)  # 这里直接使用位置差向量计算梯度
+                )
 
     @ti.kernel
     def accumulate_pressure_force(self):

@@ -16,7 +16,7 @@ def calc_particle_radius(particle_mass: float, density: float) -> float:
     return 0.5 / particle_per_axis
 
 def calc_particle_mass(particle_radius: float, density: float) -> float:
-    particle_per_axis = 1 / particle_radius
+    particle_per_axis = 0.5 / particle_radius
     particle_cnt = particle_per_axis ** 3
     return density / particle_cnt
 

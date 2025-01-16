@@ -191,6 +191,7 @@ class SPH_Solver:
         for step_idx in range(total_steps):
             # one frame
             if step_idx % steps_per_frame == 0:
+                # export particles location to disk
                 self.save_frame(frame_idx)
                 frame_idx += 1
 
