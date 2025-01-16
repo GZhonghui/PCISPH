@@ -248,3 +248,41 @@ class ParticleSystem:
                 self.particles[i].location = ti.math.clamp(
                     location, self.domain_start, self.domain_end
                 )
+    
+    @ti.func
+    def count_neighborhoods(self, self_index: int, other_index: int):
+        distance = ti.math.distance(
+            self.particles[self_index].location,
+            self.particles[other_index].location
+        )
+        if distance < self.kernel_func_h:
+            self.neighborhood_cnt[self_index] += 1
+
+    @ti.kernel
+    def run_neighborhood_search_debug_kernel(self):
+        for i in range(self.particles_cnt):
+            self.neighborhood_cnt[i] = 0
+            self.neighborhood_searcher.for_all_neighborhoods(
+                i, self.count_neighborhoods
+            )
+            for j in range(self.particles_cnt):
+                distance = ti.math.distance(
+                    self.particles[i].location,
+                    self.particles[j].location
+                )
+                if distance < self.kernel_func_h:
+                    self.neighborhood_cnt[i] -= 1
+
+    def run_neighborhood_search_debug(self):
+        self.neighborhood_cnt = ti.field(ti.int32)
+        ti.root.dense(ti.i, self.particles_cnt).place(self.neighborhood_cnt)
+        self.run_neighborhood_search_debug_kernel()
+
+        found_error = 0
+        for i in range(self.particles_cnt):
+            if self.neighborhood_cnt[i] != 0:
+                found_error += 1
+        if found_error == 0:
+            log("neighborhood search is correct")
+        else:
+            log("neighborhood search is incorrect")

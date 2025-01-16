@@ -186,6 +186,10 @@ class SPH_Solver:
             scene.set_camera(camera)
             scene.ambient_light((0.8, 0.8, 0.8))
 
+        log("running neighborhood search debug...")
+        self.particle_system.rebuild_search_index()
+        self.particle_system.run_neighborhood_search_debug()
+
         frame_idx = 0
         enter_bar()
         pbar = tqdm(total=total_steps, desc="simulation")
